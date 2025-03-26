@@ -1,0 +1,48 @@
+# Entorno virtual
+venv/
+env/
+ENV/
+
+# Archivos de caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Directorios y archivos locales
+instance/
+.webassets-cache
+.env
+.flaskenv
+
+# Archivos de base de datos
+*.db
+*.sqlite
+
+# Archivos de sesión
+flask_session/
+
+# Archivos de log
+*.log
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Directorio de uploads (archivos de audio)
+static/uploads/
+
+# Archivos de IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Archivos de distribución
+dist/
+build/
+*.egg-info/
+
+# Carpetas de dependencias
+node_modules/ 

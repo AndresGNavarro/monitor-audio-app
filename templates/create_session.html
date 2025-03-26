@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Sesión de Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4a6baf;
+            --secondary-color: #6c757d;
+            --accent-color: #5d8eff;
+            --light-bg: #f8f9fa;
+            --dark-text: #343a40;
+        }
+        
+        body { 
+            padding-top: 0; 
+            background-color: #f0f2f5;
+            color: var(--dark-text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container { 
+            max-width: 700px; 
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header-section {
+            background: linear-gradient(145deg, var(--primary-color), #304878);
+            color: white;
+            padding: 50px 0;
+            margin-bottom: 30px;
+            text-align: center;
+            border-radius: 0 0 30px 30px;
+        }
+        
+        .header-section h1 {
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: var(--light-bg);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+        
+        .card-body {
+            padding: 30px;
+        }
+        
+        .card-footer {
+            background-color: var(--light-bg);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            padding: 15px 20px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .form-control {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.25rem rgba(93, 142, 255, 0.25);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 12px 25px;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-outline-secondary {
+            color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            padding: 12px 25px;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-outline-secondary:hover {
+            background-color: var(--secondary-color);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .instruction-card {
+            background-color: var(--light-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .instruction-step {
+            display: flex;
+            margin-bottom: 15px;
+            align-items: flex-start;
+        }
+        
+        .step-icon {
+            background-color: rgba(93, 142, 255, 0.1);
+            color: var(--primary-color);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-content h5 {
+            margin-bottom: 5px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .step-content p {
+            margin-bottom: 0;
+            color: #6c757d;
+        }
+        
+        /* Animación de elementos */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .header-section, .card {
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+        
+        .card {
+            animation-delay: 0.2s;
+        }
+        
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .header-section {
+                padding: 30px 0;
+            }
+            
+            .header-section h1 {
+                font-size: 1.8rem;
+            }
+            
+            .card-body, .card-footer {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-section">
+        <div class="container">
+            <h1><i class="fas fa-plus-circle me-2"></i> Crear Nueva Sesión</h1>
+            <p class="lead">Configura una sesión para que tu banda pueda escuchar simultáneamente</p>
+        </div>
+    </div>
+
+    <div class="container main-container">
+        <div class="card">
+            <div class="card-header d-flex align-items-center">
+                <i class="fas fa-cog me-2"></i>
+                <span>Configuración de sesión</span>
+            </div>
+            <div class="card-body">
+                <form action="/crear-sesion" method="POST">
+                    <div class="mb-4">
+                        <label for="creator_name" class="form-label">Tu nombre</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" id="creator_name" name="creator_name" placeholder="Director, Guitarrista, etc.">
+                        </div>
+                        <div class="form-text">Este nombre será visible para los miembros que se unan.</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="session_name" class="form-label">Nombre de la sesión</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-music"></i></span>
+                            <input type="text" class="form-control" id="session_name" name="session_name" placeholder="Ensayo, Práctica, etc.">
+                        </div>
+                        <div class="form-text">Un nombre descriptivo para identificar esta sesión.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-play-circle me-2"></i> Iniciar Sesión
+                        </button>
+                        <a href="/" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Volver
+                        </a>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                <p class="mb-0">Al crear la sesión, recibirás un código único para compartir con los músicos</p>
+            </div>
+        </div>
+        
+        <div class="instructions-section">
+            <h4 class="mb-3"><i class="fas fa-info-circle me-2"></i>Cómo funciona</h4>
+            
+            <div class="instruction-card">
+                <div class="instruction-step">
+                    <div class="step-icon">1</div>
+                    <div class="step-content">
+                        <h5>Iniciar sesión</h5>
+                        <p>Completa el formulario para crear una nueva sala de monitoreo.</p>
+                    </div>
+                </div>
+                
+                <div class="instruction-step">
+                    <div class="step-icon">2</div>
+                    <div class="step-content">
+                        <h5>Compartir código</h5>
+                        <p>Se generará un código único que deberás compartir con los miembros de tu banda.</p>
+                    </div>
+                </div>
+                
+                <div class="instruction-step">
+                    <div class="step-icon">3</div>
+                    <div class="step-content">
+                        <h5>Subir pista de audio</h5>
+                        <p>Sube el archivo que deseas que todos escuchen simultáneamente.</p>
+                    </div>
+                </div>
+                
+                <div class="instruction-step">
+                    <div class="step-icon">4</div>
+                    <div class="step-content">
+                        <h5>Controlar la reproducción</h5>
+                        <p>Como director, tendrás el control de reproducción para todos los participantes.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-info d-flex align-items-center">
+                <i class="fas fa-lightbulb me-3 fs-4"></i>
+                <div>
+                    <strong>Consejo:</strong> Para una mejor experiencia, asegúrate de que todos tengan una buena conexión a internet y utilicen auriculares para evitar retroalimentación.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

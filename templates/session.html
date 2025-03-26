@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sesión de Audio - Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4a6baf;
+            --secondary-color: #6c757d;
+            --accent-color: #5d8eff;
+            --light-bg: #f8f9fa;
+            --dark-text: #343a40;
+        }
+        
+        body { 
+            padding-top: 20px; 
+            background-color: #f0f2f5;
+            color: var(--dark-text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container { 
+            max-width: 950px; 
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        .session-header {
+            background: linear-gradient(145deg, var(--primary-color), #304878);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: var(--light-bg);
+            font-weight: 600;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .upload-section {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .upload-section:hover {
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Player styles */
+        .player-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        .timeline {
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            position: relative;
+            margin: 20px 0;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.1s linear;
+        }
+        
+        .timestamp-container {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 15px;
+        }
+        
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 15px;
+        }
+        
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .control-btn:hover {
+            background-color: var(--accent-color);
+            transform: scale(1.05);
+        }
+        
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .control-btn.primary {
+            width: 60px;
+            height: 60px;
+            font-size: 22px;
+        }
+        
+        /* Individual audio controls */
+        .audio-controls {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .audio-control-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .audio-control-label {
+            width: 100px;
+            font-weight: 500;
+        }
+        
+        .slider-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        
+        .audio-slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            outline: none;
+        }
+        
+        .audio-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .audio-slider::-webkit-slider-thumb:hover {
+            background-color: var(--accent-color);
+        }
+        
+        .slider-value {
+            margin-left: 15px;
+            font-size: 0.9rem;
+            width: 40px;
+            text-align: right;
+        }
+        
+        /* List styles */
+        .list-group-item {
+            border: none;
+            border-left: 3px solid transparent;
+            margin-bottom: 3px;
+            border-radius: 0 6px 6px 0;
+            transition: all 0.2s;
+        }
+        
+        .list-group-item:hover {
+            border-left-color: var(--accent-color);
+            background-color: rgba(93, 142, 255, 0.05);
+        }
+        
+        /* Animation for waiting */
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .waiting-pulse {
+            animation: pulse 1.5s infinite;
+            color: var(--accent-color);
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .controls {
+                flex-wrap: wrap;
+            }
+            
+            .audio-control-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .audio-control-label {
+                margin-bottom: 8px;
+                width: auto;
+            }
+            
+            .session-header {
+                padding: 15px;
+            }
+        }
+        
+        /* Visualizer */
+        .visualizer-container {
+            height: 60px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .visualizer-bar {
+            width: 5px;
+            background-color: var(--accent-color);
+            margin: 0 2px;
+            border-radius: 2px;
+            height: 5px;
+            transition: height 0.1s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container main-container">
+        <div class="session-header d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-1">{{ session_name|default('Sesión de monitor') }}</h3>
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-light text-dark me-2">ID: {{ session_id }}</span>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-users me-2"></i>
+                        <span id="connected-users">1</span> músicos conectados
+                    </div>
+                </div>
+            </div>
+            <div>
+                <button id="share-btn" class="btn btn-light btn-sm">
+                    <i class="fas fa-share-alt me-1"></i> Compartir
+                </button>
+            </div>
+        </div>
+        
+        {% if is_creator %}
+        <div class="upload-section">
+            <h5 class="mb-3"><i class="fas fa-cloud-upload-alt me-2"></i>Subir archivo de audio</h5>
+            <form id="upload-form">
+                <div class="mb-3">
+                    <input type="file" class="form-control" id="audio-file" accept="audio/*" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-upload me-1"></i> Subir y compartir
+                </button>
+            </form>
+        </div>
+        {% endif %}
+        
+        <div id="player-container" class="player-container" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="fas fa-music me-2"></i>Reproduciendo: <span id="track-name" class="text-primary">-</span></h5>
+                <span id="status-indicator" class="badge bg-secondary waiting-pulse">Esperando...</span>
+            </div>
+            
+            <div class="visualizer-container" id="visualizer">
+                <!-- Bars will be inserted by JavaScript -->
+            </div>
+            
+            <div class="timeline" id="timeline">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            
+            <div class="timestamp-container">
+                <span id="current-time">0:00</span>
+                <span id="duration">0:00</span>
+            </div>
+            
+            {% if is_creator %}
+            <div class="controls">
+                <button id="backward-btn" class="control-btn" title="Retroceder 10 segundos">
+                    <i class="fas fa-backward"></i>
+                </button>
+                <button id="play-btn" class="control-btn primary" title="Reproducir">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button id="pause-btn" class="control-btn primary" title="Pausar" style="display: none;">
+                    <i class="fas fa-pause"></i>
+                </button>
+                <button id="forward-btn" class="control-btn" title="Adelantar 10 segundos">
+                    <i class="fas fa-forward"></i>
+                </button>
+            </div>
+            {% else %}
+            <div class="text-center py-3">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> El director controla la reproducción para todos los músicos
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Individual audio controls for all users -->
+            <div class="audio-controls">
+                <h6 class="mb-3">Control de audio individual</h6>
+                
+                <div class="audio-control-row">
+                    <div class="audio-control-label">Volumen</div>
+                    <div class="slider-container">
+                        <input type="range" class="audio-slider" id="volume-slider" min="0" max="100" value="100">
+                        <div class="slider-value" id="volume-value">100%</div>
+                    </div>
+                </div>
+                
+                <div class="audio-control-row">
+                    <div class="audio-control-label">Graves</div>
+                    <div class="slider-container">
+                        <input type="range" class="audio-slider" id="bass-slider" min="-10" max="10" value="0">
+                        <div class="slider-value" id="bass-value">0</div>
+                    </div>
+                </div>
+                
+                <div class="audio-control-row">
+                    <div class="audio-control-label">Medios</div>
+                    <div class="slider-container">
+                        <input type="range" class="audio-slider" id="mid-slider" min="-10" max="10" value="0">
+                        <div class="slider-value" id="mid-value">0</div>
+                    </div>
+                </div>
+                
+                <div class="audio-control-row">
+                    <div class="audio-control-label">Agudos</div>
+                    <div class="slider-container">
+                        <input type="range" class="audio-slider" id="treble-slider" min="-10" max="10" value="0">
+                        <div class="slider-value" id="treble-value">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-user-friends me-2"></i> Músicos conectados</span>
+                <span class="badge bg-primary" id="user-count">1</span>
+            </div>
+            <ul id="users-list" class="list-group list-group-flush">
+                <li class="list-group-item d-flex align-items-center">
+                    {% if is_creator %}
+                    <i class="fas fa-crown text-warning me-2"></i>
+                    <span>Tú (Director)</span>
+                    {% else %}
+                    <i class="fas fa-headphones me-2"></i>
+                    <span>Tú ({{ user_name|default('Músico') }})</span>
+                    {% endif %}
+                    <span class="badge bg-success ms-2">Conectado</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.5.4/dist/socket.io.min.js"></script>
+    <script>
+        // Variables globales
+        const sessionId = "{{ session_id }}";
+        const isCreator = {{ 'true' if is_creator else 'false' }};
+        const userName = "{{ user_name|default('Músico') if not is_creator else 'Director' }}";
+        let socket;
+        let audioElement;
+        let audioContext;
+        let analyser;
+        let bassFilter, midFilter, trebleFilter;
+        let gainNode;
+        let serverTimeOffset = 0;
+        let isPlaying = false;
+        let visualizerBars = [];
+        let animationFrameId;
+        
+        // Inicialización cuando el DOM está listo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Crear elemento de audio
+            audioElement = new Audio();
+            
+            // Inicializar Web Audio API para controles de audio
+            setupAudioContext();
+            
+            // Crear visualizador
+            createVisualizer();
+            
+            // Conectar al servidor de WebSocket
+            connectSocket();
+            
+            // Sincronizar el reloj con el servidor
+            syncServerTime();
+            
+            // Configurar manejadores de eventos
+            setupEventHandlers();
+            
+            // Configurar compartir código de sesión
+            document.getElementById('share-btn').addEventListener('click', function() {
+                const sessionText = `Únete a mi sesión de monitoreo con el código: ${sessionId}`;
+                navigator.clipboard.writeText(sessionText)
+                    .then(() => {
+                        alert('Código copiado al portapapeles');
+                    })
+                    .catch(err => console.error('Error al copiar: ', err));
+            });
+        });
+        
+        function setupAudioContext() {
+            try {
+                // Crear contexto de audio
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Crear nodo de ganancia para volumen
+                gainNode = audioContext.createGain();
+                
+                // Crear filtros para EQ
+                bassFilter = audioContext.createBiquadFilter();
+                bassFilter.type = "lowshelf";
+                bassFilter.frequency.value = 200;
+                
+                midFilter = audioContext.createBiquadFilter();
+                midFilter.type = "peaking";
+                midFilter.frequency.value = 1000;
+                midFilter.Q.value = 0.5;
+                
+                trebleFilter = audioContext.createBiquadFilter();
+                trebleFilter.type = "highshelf";
+                trebleFilter.frequency.value = 3000;
+                
+                // Crear analizador para visualizar
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                
+                // Conectar nodos de audio
+                const source = audioContext.createMediaElementSource(audioElement);
+                source.connect(bassFilter);
+                bassFilter.connect(midFilter);
+                midFilter.connect(trebleFilter);
+                trebleFilter.connect(gainNode);
+                gainNode.connect(analyser);
+                analyser.connect(audioContext.destination);
+                
+                // Configurar controles de ecualización
+                document.getElementById('volume-slider').addEventListener('input', function(e) {
+                    const value = e.target.value;
+                    gainNode.gain.value = value / 100;
+                    document.getElementById('volume-value').textContent = value + '%';
+                });
+                
+                document.getElementById('bass-slider').addEventListener('input', function(e) {
+                    const value = e.target.value;
+                    bassFilter.gain.value = value;
+                    document.getElementById('bass-value').textContent = value;
+                });
+                
+                document.getElementById('mid-slider').addEventListener('input', function(e) {
+                    const value = e.target.value;
+                    midFilter.gain.value = value;
+                    document.getElementById('mid-value').textContent = value;
+                });
+                
+                document.getElementById('treble-slider').addEventListener('input', function(e) {
+                    const value = e.target.value;
+                    trebleFilter.gain.value = value;
+                    document.getElementById('treble-value').textContent = value;
+                });
+            } catch (e) {
+                console.error('Error al configurar Web Audio API:', e);
+            }
+        }
+        
+        function createVisualizer() {
+            const visualizerContainer = document.getElementById('visualizer');
+            const numBars = 32;
+            
+            // Crear barras del visualizador
+            for (let i = 0; i < numBars; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'visualizer-bar';
+                visualizerContainer.appendChild(bar);
+                visualizerBars.push(bar);
+            }
+        }
+        
+        function updateVisualizer() {
+            if (!analyser || !isPlaying) return;
+            
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+            
+            // Mapear datos del analizador a barras del visualizador
+            const step = Math.floor(bufferLength / visualizerBars.length);
+            
+            for (let i = 0; i < visualizerBars.length; i++) {
+                const value = dataArray[i * step];
+                const height = Math.max(5, value / 2);  // Altura mínima de 5px
+                visualizerBars[i].style.height = height + 'px';
+            }
+            
+            animationFrameId = requestAnimationFrame(updateVisualizer);
+        }
+        
+        function connectSocket() {
+            socket = io();
+            
+            // Unirse a la sala
+            socket.on('connect', function() {
+                socket.emit('join', {
+                    session_id: sessionId,
+                    username: userName
+                });
+            });
+            
+            // Escuchar eventos
+            socket.on('user_joined', function(data) {
+                updateUsersList(data.users);
+                
+                // Notificar la nueva conexión
+                const notification = document.createElement('div');
+                notification.className = 'alert alert-success alert-dismissible fade show';
+                notification.innerHTML = `
+                    <i class="fas fa-user-plus me-2"></i> ${data.username} se ha unido
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                document.querySelector('.main-container').prepend(notification);
+                
+                // Auto-eliminar la notificación después de 5 segundos
+                setTimeout(() => {
+                    notification.remove();
+                }, 5000);
+            });
+            
+            socket.on('user_left', function(data) {
+                updateUsersList(data.users);
+            });
+            
+            socket.on('track_updated', function(data) {
+                updateTrack(data);
+            });
+            
+            socket.on('playback_update', function(data) {
+                handlePlaybackEvent(data);
+            });
+        }
+        
+        function syncServerTime() {
+            fetch('/server-time')
+                .then(response => response.json())
+                .then(data => {
+                    const clientTime = Date.now();
+                    serverTimeOffset = data.timestamp - clientTime;
+                    
+                    // Re-sincronizar cada minuto
+                    setTimeout(syncServerTime, 60000);
+                })
+                .catch(err => console.error('Error sincronizando tiempo:', err));
+        }
+        
+        function setupEventHandlers() {
+            // Manejador de subida de archivos
+            if (isCreator) {
+                document.getElementById('upload-form').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const fileInput = document.getElementById('audio-file');
+                    if (!fileInput.files.length) return;
+                    
+                    const formData = new FormData();
+                    formData.append('audio_file', fileInput.files[0]);
+                    formData.append('session_id', sessionId);
+                    
+                    // Mostrar indicador de carga
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Subiendo...';
+                    
+                    fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                        
+                        if (data.error) {
+                            alert('Error: ' + data.error);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error al subir:', err);
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    });
+                });
+                
+                // Botones de control para el director
+                document.getElementById('play-btn').addEventListener('click', function() {
+                    socket.emit('playback_event', {
+                        session_id: sessionId,
+                        action: 'play',
+                        position: audioElement.currentTime
+                    });
+                    
+                    this.style.display = 'none';
+                    document.getElementById('pause-btn').style.display = 'flex';
+                });
+                
+                document.getElementById('pause-btn').addEventListener('click', function() {
+                    socket.emit('playback_event', {
+                        session_id: sessionId,
+                        action: 'pause',
+                        position: audioElement.currentTime
+                    });
+                    
+                    this.style.display = 'none';
+                    document.getElementById('play-btn').style.display = 'flex';
+                });
+                
+                document.getElementById('backward-btn').addEventListener('click', function() {
+                    const newPosition = Math.max(0, audioElement.currentTime - 10);
+                    socket.emit('playback_event', {
+                        session_id: sessionId,
+                        action: 'seek',
+                        position: newPosition
+                    });
+                });
+                
+                document.getElementById('forward-btn').addEventListener('click', function() {
+                    const newPosition = Math.min(audioElement.duration, audioElement.currentTime + 10);
+                    socket.emit('playback_event', {
+                        session_id: sessionId,
+                        action: 'seek',
+                        position: newPosition
+                    });
+                });
+            }
+            
+            // Línea de tiempo para todos los usuarios
+            document.getElementById('timeline').addEventListener('click', function(e) {
+                if (isCreator && audioElement.duration) {
+                    const rect = this.getBoundingClientRect();
+                    const clickPosition = (e.clientX - rect.left) / rect.width;
+                    const newPosition = clickPosition * audioElement.duration;
+                    
+                    socket.emit('playback_event', {
+                        session_id: sessionId,
+                        action: 'seek',
+                        position: newPosition
+                    });
+                }
+            });
+            
+            // Actualizar tiempo de reproducción
+            audioElement.addEventListener('timeupdate', function() {
+                const currentTime = formatTime(audioElement.currentTime);
+                document.getElementById('current-time').textContent = currentTime;
+                
+                // Actualizar barra de progreso
+                if (audioElement.duration) {
+                    const progress = (audioElement.currentTime / audioElement.duration) * 100;
+                    document.getElementById('progress-bar').style.width = progress + '%';
+                }
+            });
+            
+            audioElement.addEventListener('loadedmetadata', function() {
+                const duration = formatTime(audioElement.duration);
+                document.getElementById('duration').textContent = duration;
+            });
+            
+            // Cambiar estado al reproducir/pausar
+            audioElement.addEventListener('play', function() {
+                isPlaying = true;
+                document.getElementById('status-indicator').textContent = 'Reproduciendo';
+                document.getElementById('status-indicator').classList.remove('waiting-pulse', 'bg-secondary');
+                document.getElementById('status-indicator').classList.add('bg-success');
+                
+                // Iniciar animación del visualizador
+                updateVisualizer();
+            });
+            
+            audioElement.addEventListener('pause', function() {
+                isPlaying = false;
+                document.getElementById('status-indicator').textContent = 'Pausado';
+                document.getElementById('status-indicator').classList.remove('waiting-pulse', 'bg-success');
+                document.getElementById('status-indicator').classList.add('bg-secondary');
+                
+                // Detener animación del visualizador
+                cancelAnimationFrame(animationFrameId);
+            });
+            
+            audioElement.addEventListener('ended', function() {
+                if (isCreator) {
+                    document.getElementById('play-btn').style.display = 'flex';
+                    document.getElementById('pause-btn').style.display = 'none';
+                }
+                
+                document.getElementById('status-indicator').textContent = 'Finalizado';
+                document.getElementById('status-indicator').classList.remove('waiting-pulse', 'bg-success');
+                document.getElementById('status-indicator').classList.add('bg-secondary');
+            });
+        }
+        
+        function updateTrack(trackData) {
+            document.getElementById('player-container').style.display = 'block';
+            document.getElementById('track-name').textContent = trackData.filename;
+            
+            // Actualizar audio
+            audioElement.src = trackData.path;
+            audioElement.load();
+            
+            // Reiniciar controles visuales
+            document.getElementById('progress-bar').style.width = '0%';
+            document.getElementById('status-indicator').textContent = 'Esperando...';
+            document.getElementById('status-indicator').classList.add('waiting-pulse', 'bg-secondary');
+            document.getElementById('status-indicator').classList.remove('bg-success');
+            
+            // Reiniciar botones para el director
+            if (isCreator) {
+                document.getElementById('play-btn').style.display = 'flex';
+                document.getElementById('pause-btn').style.display = 'none';
+            }
+        }
+        
+        function handlePlaybackEvent(data) {
+            // Reactivar contexto de audio si está suspendido
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            // Calcular ajustes por latencia
+            const serverNow = Date.now() + serverTimeOffset;
+            const eventAge = serverNow - data.server_timestamp;
+            const adjustedPosition = data.position + (eventAge / 1000);
+            
+            if (data.action === 'play') {
+                audioElement.currentTime = adjustedPosition;
+                audioElement.play().catch(e => console.error('Error al reproducir:', e));
+                
+                if (isCreator) {
+                    document.getElementById('play-btn').style.display = 'none';
+                    document.getElementById('pause-btn').style.display = 'flex';
+                }
+            } else if (data.action === 'pause') {
+                audioElement.pause();
+                audioElement.currentTime = adjustedPosition;
+                
+                if (isCreator) {
+                    document.getElementById('play-btn').style.display = 'flex';
+                    document.getElementById('pause-btn').style.display = 'none';
+                }
+            } else if (data.action === 'seek') {
+                audioElement.currentTime = adjustedPosition;
+            }
+        }
+        
+        function updateUsersList(users) {
+            const usersList = document.getElementById('users-list');
+            const connectedUsersCount = document.getElementById('connected-users');
+            const userCount = document.getElementById('user-count');
+            
+            // Actualizar contador
+            connectedUsersCount.textContent = users.length;
+            userCount.textContent = users.length;
+            
+            // Limpiar lista actual
+            usersList.innerHTML = '';
+            
+            // Añadir usuario actual primero
+            const selfItem = document.createElement('li');
+            selfItem.className = 'list-group-item d-flex align-items-center';
+            
+            if (isCreator) {
+                selfItem.innerHTML = `
+                    <i class="fas fa-crown text-warning me-2"></i>
+                    <span>Tú (Director)</span>
+                    <span class="badge bg-success ms-2">Conectado</span>
+                `;
+            } else {
+                selfItem.innerHTML = `
+                    <i class="fas fa-headphones me-2"></i>
+                    <span>Tú (${userName})</span>
+                    <span class="badge bg-success ms-2">Conectado</span>
+                `;
+            }
+            
+            usersList.appendChild(selfItem);
+            
+            // Añadir otros usuarios
+            users.forEach(function(username, index) {
+                // Omitir al usuario actual
+                if (index === 0) return;
+                
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex align-items-center';
+                
+                // Identificar si es el director
+                if (index === 1 && isCreator) {
+                    li.innerHTML = `
+                        <i class="fas fa-user me-2"></i>
+                        <span>${username}</span>
+                    `;
+                } else {
+                    li.innerHTML = `
+                        <i class="fas fa-user me-2"></i>
+                        <span>${username}</span>
+                    `;
+                }
+                
+                usersList.appendChild(li);
+            });
+        }
+        
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>

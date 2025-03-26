@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Audio Sincronizado</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4a6baf;
+            --secondary-color: #6c757d;
+            --accent-color: #5d8eff;
+            --light-bg: #f8f9fa;
+            --dark-text: #343a40;
+        }
+        
+        body { 
+            padding-top: 0; 
+            background-color: #f0f2f5;
+            color: var(--dark-text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container { 
+            max-width: 1000px; 
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .hero-section {
+            background: linear-gradient(145deg, var(--primary-color), #304878);
+            color: white;
+            padding: 80px 0 100px;
+            margin-bottom: -50px;
+            position: relative;
+        }
+        
+        .hero-section::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: linear-gradient(to bottom right, transparent 49%, #f0f2f5 50%);
+        }
+        
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        .hero-title {
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            padding: 20px;
+            text-align: center;
+            border-bottom: none;
+        }
+        
+        .card-body {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            flex-grow: 1;
+        }
+        
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .card-text {
+            margin-bottom: 25px;
+            flex-grow: 1;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 10px 20px;
+            font-weight: 500;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            transform: scale(1.05);
+        }
+        
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            padding: 10px 20px;
+            font-weight: 500;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            border-color: #5a6268;
+            transform: scale(1.05);
+        }
+        
+        .features-section {
+            padding: 80px 0;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 30px;
+        }
+        
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            background-color: rgba(93, 142, 255, 0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            flex-shrink: 0;
+        }
+        
+        .feature-content h4 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .feature-content p {
+            color: #6c757d;
+            margin-bottom: 0;
+        }
+        
+        .how-it-works {
+            padding: 50px 0;
+            background-color: var(--light-bg);
+            border-radius: 20px;
+            margin-top: 30px;
+        }
+        
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .footer {
+            background-color: #343a40;
+            color: white;
+            padding: 30px 0;
+            margin-top: 80px;
+        }
+        
+        .waveform {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            opacity: 0.1;
+        }
+        
+        @keyframes moveWave {
+            0% { background-position-x: 0; }
+            100% { background-position-x: 100vw; }
+        }
+        
+        .wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' fill='white'%3E%3C/path%3E%3Cpath d='M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z' opacity='.5' fill='white'%3E%3C/path%3E%3Cpath d='M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z' fill='white'%3E%3C/path%3E%3C/svg%3E");
+            background-size: cover;
+            background-position: bottom;
+            z-index: 1;
+        }
+        
+        /* Animation keyframes for page elements */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .hero-title, .hero-subtitle, .card {
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+        
+        .hero-subtitle {
+            animation-delay: 0.2s;
+        }
+        
+        .card {
+            animation-delay: 0.4s;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.2rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .hero-section {
+                padding: 60px 0 80px;
+            }
+            
+            .feature-item {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            
+            .feature-icon {
+                margin-right: 0;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero-section">
+        <div class="container hero-content">
+            <h1 class="hero-title">Monitor de Audio Sincronizado</h1>
+            <p class="hero-subtitle">La solución para que tu banda escuche la misma pista al mismo tiempo, sin equipo costoso</p>
+        </div>
+        <div class="wave"></div>
+    </div>
+    
+    <div class="container main-container">
+        <div class="row mt-5">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-icon">
+                            <i class="fas fa-microphone-alt"></i>
+                        </div>
+                        <h5 class="card-title">Crear una sesión</h5>
+                        <p class="card-text">Inicia una nueva sesión como director para controlar qué escucha tu banda. Sube archivos de audio y controla la reproducción en tiempo real.</p>
+                        <a href="/crear-sesion" class="btn btn-primary">
+                            <i class="fas fa-plus-circle me-2"></i> Crear sesión
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="card-icon">
+                            <i class="fas fa-headphones"></i>
+                        </div>
+                        <h5 class="card-title">Unirse a una sesión</h5>
+                        <p class="card-text">Únete a una sesión existente con el código compartido por el director. Ajusta tu volumen y ecualización según tus preferencias.</p>
+                        <a href="/unirse-sesion" class="btn btn-secondary">
+                            <i class="fas fa-sign-in-alt me-2"></i> Unirse
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="features-section">
+            <h2 class="text-center mb-5">Características principales</h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-sync-alt"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Sincronización precisa</h4>
+                            <p>Todos los músicos escuchan exactamente la misma parte de la canción al mismo tiempo, con compensación de latencia.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-sliders-h"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Control de audio personal</h4>
+                            <p>Cada músico puede ajustar su propio volumen y ecualización según sus preferencias.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Funciona en cualquier dispositivo</h4>
+                            <p>Compatible con smartphones, tablets y computadoras, solo necesitas una conexión a internet.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="feature-item">
+                        <div class="feature-icon">
+                            <i class="fas fa-user-friends"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h4>Ideal para ensayos y prácticas</h4>
+                            <p>Perfecto para bandas que están comenzando y no cuentan con equipos de monitoreo profesionales.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="how-it-works">
+            <div class="container">
+                <h2 class="text-center mb-5">¿Cómo funciona?</h2>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6 d-flex">
+                        <div class="step-number">1</div>
+                        <div>
+                            <h4>El director crea una sesión</h4>
+                            <p>Genera un código único para compartir con los miembros de la banda.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 d-flex mt-4 mt-md-0">
+                        <div class="step-number">2</div>
+                        <div>
+                            <h4>Subir archivos de audio</h4>
+                            <p>El director sube las pistas que quiere compartir con la banda.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 d-flex">
+                        <div class="step-number">3</div>
+                        <div>
+                            <h4>Los músicos se conectan</h4>
+                            <p>Cada miembro usa el código para unirse a la sesión desde su dispositivo.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 d-flex mt-4 mt-md-0">
+                        <div class="step-number">4</div>
+                        <div>
+                            <h4>Monitoreo sincronizado</h4>
+                            <p>Todos escuchan la misma pista simultáneamente con sus propios auriculares.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="footer mt-auto">
+        <div class="container text-center">
+            <p>Monitor de Audio Sincronizado &copy; 2025 - Una solución para bandas emergentes</p>
+        </div>
+    </footer>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
