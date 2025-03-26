@@ -85,6 +85,10 @@ def compress_audio(file_path, output_path=None, quality=128):
 def index():
     return render_template('index.html')
 
+@app.route('/admin')
+def admin_panel():
+    return render_template('admin.html')
+
 @app.route('/crear-sesion', methods=['GET', 'POST'])
 def create_session():
     if request.method == 'POST':
@@ -130,6 +134,44 @@ def join_session():
             error = "Código de sesión no válido. Verifica e intenta nuevamente."
     
     return render_template('join_session.html', error=error, session_id=session_id)
+
+@app.route('/api/sessions', methods=['GET'])
+def list_sessions():
+    sessions_list = []
+    for session_id, data in sessions.items():
+        sessions_list.append({
+            'id': session_id,
+            'name': data.get('session_name', 'Sesión sin nombre'),
+            'created_at': data.get('created_at', 0),
+            'users_count': len(data.get('users', [])),
+            'has_track': data.get('track') is not None
+        })
+    
+    # Ordenar por fecha de creación (más recientes primero)
+    sessions_list.sort(key=lambda x: x['created_at'], reverse=True)
+    
+    return jsonify({'sessions': sessions_list})
+
+
+@app.route('/api/sessions/<session_id>', methods=['DELETE'])
+def delete_session(session_id):
+    access_code = request.json.get('access_code')
+    
+    # Verificar que la sesión existe
+    if session_id not in sessions:
+        return jsonify({'success': False, 'error': 'Sesión no encontrada'}), 404
+    
+    # Verificar el código de acceso (debe coincidir con el ID de sesión)
+    if access_code != session_id:
+        return jsonify({'success': False, 'error': 'Código de acceso incorrecto'}), 403
+    
+    # Eliminar la sesión
+    del sessions[session_id]
+    
+    # Notificar a los clientes conectados
+    socketio.emit('session_closed', {'message': 'Esta sesión ha sido cerrada por el administrador'}, to=session_id)
+    
+    return jsonify({'success': True})
 
 @app.route('/upload', methods=['POST'])
 def upload_file():

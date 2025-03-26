@@ -598,6 +598,30 @@
                     })
                     .catch(err => console.error('Error al copiar: ', err));
             });
+            
+            const pendingCommand = sessionStorage.getItem('pendingPlaybackCommand');
+            if (pendingCommand) {
+                try {
+                    const data = JSON.parse(pendingCommand);
+                    if (data.action === 'play') {
+                        setTimeout(() => {
+                            showUserInteractionOverlay();
+                        }, 1000);
+                    }
+                } catch (e) {
+                    console.error('Error al procesar comando pendiente:', e);
+                    sessionStorage.removeItem('pendingPlaybackCommand');
+                }
+            }
+            
+            // Añadir event listener para Socket.IO para manejar cierre de sesión
+            if (socket) {
+                socket.on('session_closed', function(data) {
+                    alert(data.message);
+                    // Redirigir al usuario a la página principal
+                    window.location.href = '/';
+                });
+            }
         });
         
         function setupAudioContext() {
@@ -1076,18 +1100,33 @@
         
         function handlePlaybackEvent(data) {
             try {
-                // Asegurarse de que el audio está cargado
+                // Si el audio no está listo, prepararlo pero no reproducir automáticamente
                 if (!audioElement.readyState || audioElement.readyState < 2) {
                     console.warn('Audio no está listo para reproducir, intentando pre-cargar');
                     audioElement.load();
                     
-                    // Intentar reproducir después de un corto retraso
-                    setTimeout(() => {
-                        processPlaybackCommand(data);
-                    }, 500);
+                    // Guardar el comando de reproducción para usarlo después
+                    sessionStorage.setItem('pendingPlaybackCommand', JSON.stringify(data));
+                    
+                    // Mostrar el overlay solo si es un comando de reproducción
+                    if (data.action === 'play') {
+                        showUserInteractionOverlay();
+                    }
+                    
                     return;
                 }
                 
+                // Si está listo, procesar el comando directamente
+                if (data.action === 'play') {
+                    // Para comandos de reproducción, verificar si necesitamos interacción del usuario
+                    if (!hasUserInteracted) {
+                        sessionStorage.setItem('pendingPlaybackCommand', JSON.stringify(data));
+                        showUserInteractionOverlay();
+                        return;
+                    }
+                }
+                
+                // Si llegamos aquí, podemos procesar el comando normalmente
                 processPlaybackCommand(data);
             } catch (e) {
                 console.error('Error al manejar evento de reproducción:', e);
@@ -1097,6 +1136,34 @@
             }
         }
         
+        let hasUserInteracted = false;
+
+        function showUserInteractionOverlay() {
+            const overlay = document.getElementById('user-interaction-overlay');
+            overlay.style.display = 'flex';
+            
+            document.getElementById('start-playback-btn').addEventListener('click', function() {
+                // Marcar que el usuario ha interactuado
+                hasUserInteracted = true;
+                
+                // Ocultar overlay
+                overlay.style.display = 'none';
+                
+                // Reactivar el contexto de audio si es necesario
+                if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                
+                // Procesar el comando pendiente
+                const pendingCommand = sessionStorage.getItem('pendingPlaybackCommand');
+                if (pendingCommand) {
+                    const data = JSON.parse(pendingCommand);
+                    processPlaybackCommand(data);
+                    sessionStorage.removeItem('pendingPlaybackCommand');
+                }
+            });
+        }
+
         function processPlaybackCommand(data) {
             // Reactivar contexto de audio si está suspendido
             if (audioContext && audioContext.state === 'suspended') {

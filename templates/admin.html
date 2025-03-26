@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrador de Sesiones</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4a6baf;
+            --secondary-color: #6c757d;
+            --accent-color: #5d8eff;
+            --light-bg: #f8f9fa;
+            --dark-text: #343a40;
+        }
+        
+        body { 
+            padding-top: 0; 
+            background-color: #f0f2f5;
+            color: var(--dark-text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container { 
+            max-width: 1000px; 
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .header-section {
+            background: linear-gradient(145deg, #304878, #4a6baf);
+            color: white;
+            padding: 40px 0;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .header-section h1 {
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: var(--light-bg);
+            font-weight: 600;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .session-item {
+            border-left: 4px solid transparent;
+            transition: all 0.3s ease;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .session-item:hover {
+            border-left-color: var(--accent-color);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateX(5px);
+        }
+        
+        .session-item .badge {
+            font-size: 0.75rem;
+            padding: 5px 8px;
+        }
+        
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        
+        .delete-btn:hover {
+            background-color: #c82333;
+            transform: scale(1.05);
+        }
+        
+        .modal-content {
+            border-radius: 10px;
+            border: none;
+        }
+        
+        .modal-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .modal-footer {
+            background-color: #f8f9fa;
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            opacity: 0.4;
+        }
+        
+        /* Animación para elementos nuevos */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-new {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        /* Vista responsiva */
+        @media (max-width: 768px) {
+            .session-actions {
+                margin-top: 10px;
+                display: flex;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-section">
+        <div class="container">
+            <h1><i class="fas fa-cogs me-2"></i> Administrador de Sesiones</h1>
+            <p class="lead">Gestiona las sesiones activas del monitor de audio</p>
+        </div>
+    </div>
+
+    <div class="container main-container">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-list me-2"></i> Sesiones activas</span>
+                <button id="refresh-btn" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-sync-alt me-1"></i> Actualizar lista
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="sessions-container">
+                    <div class="d-flex justify-content-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mb-5">
+            <a href="/" class="btn btn-primary">
+                <i class="fas fa-home me-2"></i> Volver a Inicio
+            </a>
+        </div>
+    </div>
+    
+    <!-- Modal para confirmar eliminación de sesión -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Eliminar sesión</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Estás seguro de que quieres eliminar la sesión <span id="session-name-display" class="fw-bold"></span>?</p>
+                    <p class="text-danger">Todos los usuarios conectados serán desconectados.</p>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i> Para confirmar, ingresa el código de la sesión:
+                    </div>
+                    
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="access-code" placeholder="Código de acceso">
+                        <div class="form-text">El código de acceso es el mismo ID de la sesión ({{ session_id }}).</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete">Eliminar sesión</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Variables globales
+        let currentSessions = [];
+        let selectedSessionId = '';
+        let deleteModal;
+        
+        // Inicialización cuando el DOM está listo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar modal
+            deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            
+            // Cargar sesiones al iniciar
+            loadSessions();
+            
+            // Configurar evento de botón de actualizar
+            document.getElementById('refresh-btn').addEventListener('click', function() {
+                loadSessions();
+            });
+            
+            // Configurar evento del botón de confirmación
+            document.getElementById('confirm-delete').addEventListener('click', function() {
+                const accessCode = document.getElementById('access-code').value;
+                
+                if (!accessCode) {
+                    alert('Por favor, ingresa el código de acceso.');
+                    return;
+                }
+                
+                deleteSession(selectedSessionId, accessCode);
+            });
+        });
+        
+        // Cargar lista de sesiones
+        function loadSessions() {
+            const container = document.getElementById('sessions-container');
+            
+            // Mostrar spinner
+            container.innerHTML = `
+                <div class="d-flex justify-content-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            `;
+            
+            // Hacer petición a la API
+            fetch('/api/sessions')
+                .then(response => response.json())
+                .then(data => {
+                    currentSessions = data.sessions;
+                    displaySessions(currentSessions);
+                })
+                .catch(error => {
+                    console.error('Error al cargar sesiones:', error);
+                    container.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i> Error al cargar sesiones. Intenta nuevamente.
+                        </div>
+                    `;
+                });
+        }
+        
+        // Mostrar sesiones en la UI
+        function displaySessions(sessions) {
+            const container = document.getElementById('sessions-container');
+            
+            if (!sessions || sessions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <h5>No hay sesiones activas</h5>
+                        <p>Actualmente no hay sesiones creadas en el sistema.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            
+            sessions.forEach(session => {
+                const createdDate = new Date(session.created_at * 1000);
+                const formattedDate = createdDate.toLocaleString();
+                
+                html += `
+                    <div class="session-item animate-new" data-id="${session.id}">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h5 class="mb-1">${session.name}</h5>
+                                <div class="small text-muted">ID: ${session.id} | Creada: ${formattedDate}</div>
+                                <div class="mt-2">
+                                    <span class="badge bg-${session.users_count > 0 ? 'success' : 'secondary'} me-2">
+                                        <i class="fas fa-users me-1"></i> ${session.users_count} usuarios
+                                    </span>
+                                    <span class="badge bg-${session.has_track ? 'info' : 'light text-dark'} me-2">
+                                        <i class="fas fa-${session.has_track ? 'music' : 'times'}"></i> ${session.has_track ? 'Con audio' : 'Sin audio'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-md-end session-actions">
+                                <button class="btn btn-sm btn-danger delete-session" data-id="${session.id}" data-name="${session.name}">
+                                    <i class="fas fa-trash-alt me-1"></i> Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            // Configurar eventos para los botones de eliminar
+            document.querySelectorAll('.delete-session').forEach(button => {
+                button.addEventListener('click', function() {
+                    const sessionId = this.getAttribute('data-id');
+                    const sessionName = this.getAttribute('data-name');
+                    
+                    selectedSessionId = sessionId;
+                    document.getElementById('session-name-display').textContent = sessionName;
+                    document.getElementById('access-code').value = '';
+                    deleteModal.show();
+                });
+            });
+        }
+        
+        // Eliminar una sesión
+        function deleteSession(sessionId, accessCode) {
+            fetch(`/api/sessions/${sessionId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    access_code: accessCode
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    deleteModal.hide();
+                    
+                    // Eliminar la sesión de la lista actual
+                    const sessionElement = document.querySelector(`.session-item[data-id="${sessionId}"]`);
+                    if (sessionElement) {
+                        sessionElement.classList.add('animate-fadeout');
+                        setTimeout(() => {
+                            sessionElement.remove();
+                            
+                            // Verificar si no quedan sesiones
+                            if (document.querySelectorAll('.session-item').length === 0) {
+                                document.getElementById('sessions-container').innerHTML = `
+                                    <div class="empty-state">
+                                        <i class="fas fa-folder-open"></i>
+                                        <h5>No hay sesiones activas</h5>
+                                        <p>Actualmente no hay sesiones creadas en el sistema.</p>
+                                    </div>
+                                `;
+                            }
+                        }, 300);
+                    }
+                    
+                    // Mostrar mensaje de éxito
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-success alert-dismissible fade show';
+                    alert.innerHTML = `
+                        <i class="fas fa-check-circle me-2"></i> Sesión eliminada correctamente.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    document.querySelector('.main-container').prepend(alert);
+                    
+                    // Auto-eliminar el mensaje después de 5 segundos
+                    setTimeout(() => {
+                        alert.remove();
+                    }, 5000);
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error al eliminar sesión:', error);
+                alert('Error al eliminar la sesión. Intenta nuevamente.');
+            });
+        }
+    </script>
+</body>
+</html>
