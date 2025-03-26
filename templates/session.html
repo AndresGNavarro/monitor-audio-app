@@ -257,9 +257,110 @@
             height: 5px;
             transition: height 0.1s ease;
         }
+        
+        /* Estilos para el indicador de conexión */
+        #connection-status {
+            margin-left: 10px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+        
+        /* Estilos para la sección de diagnóstico */
+        .diagnostic-section {
+            display: none;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .diagnostic-section.show {
+            display: block;
+        }
+        
+        .diagnostic-log {
+            max-height: 150px;
+            overflow-y: auto;
+            background-color: #343a40;
+            color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            border-bottom: 1px solid #495057;
+            padding-bottom: 3px;
+        }
+        
+        .log-time {
+            color: #17a2b8;
+            margin-right: 8px;
+        }
+        
+        .log-info { color: #28a745; }
+        .log-warn { color: #ffc107; }
+        .log-error { color: #dc3545; }
+        
+        /* Botón de diagnóstico fijo */
+        .debug-toggle {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .debug-toggle:hover {
+            background-color: rgba(0, 0, 0, 0.9);
+            transform: scale(1.1);
+        }
+        
+        /* Spinner de carga */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .loading-spinner {
+            width: 3rem; 
+            height: 3rem;
+        }
     </style>
 </head>
 <body>
+    <!-- Overlay de carga -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner-border text-light loading-spinner" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+    </div>
+
     <div class="container main-container">
         <div class="session-header d-flex justify-content-between align-items-center">
             <div>
@@ -269,6 +370,7 @@
                     <div class="d-flex align-items-center">
                         <i class="fas fa-users me-2"></i>
                         <span id="connected-users">1</span> músicos conectados
+                        <span id="connection-status" class="badge bg-warning ms-2">Conectando...</span>
                     </div>
                 </div>
             </div>
@@ -393,6 +495,44 @@
         </div>
     </div>
     
+    <!-- Panel de diagnóstico -->
+    <div class="diagnostic-section" id="diagnostic-panel">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0"><i class="fas fa-bug me-2"></i>Panel de diagnóstico</h6>
+            <button class="btn btn-sm btn-outline-secondary" id="clear-log">Limpiar</button>
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="card mb-2">
+                    <div class="card-body p-2">
+                        <small class="d-block">Estado conexión: <span id="diag-connection">--</span></small>
+                        <small class="d-block">Estado audio: <span id="diag-audio-state">--</span></small>
+                        <small class="d-block">Tiempo transcurrido: <span id="diag-elapsed">0:00</span></small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mb-2">
+                    <div class="card-body p-2">
+                        <small class="d-block">Buffer: <span id="diag-buffer">--</span></small>
+                        <small class="d-block">Latencia: <span id="diag-latency">--</span></small>
+                        <small class="d-block">User Agent: <span id="diag-ua">--</span></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="diagnostic-log" id="diag-log">
+            <!-- Entradas de log aparecerán aquí -->
+        </div>
+    </div>
+    
+    <!-- Botón de diagnóstico fijo -->
+    <button class="debug-toggle" id="debug-toggle" title="Mostrar diagnóstico">
+        <i class="fas fa-wrench"></i>
+    </button>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.5.4/dist/socket.io.min.js"></script>
     <script>
@@ -410,9 +550,24 @@
         let isPlaying = false;
         let visualizerBars = [];
         let animationFrameId;
+        let loadingOverlay = document.getElementById('loading-overlay');
+        let retryCount = 0;
+        
+        // Mostrar overlay de carga
+        function showLoading() {
+            loadingOverlay.style.display = 'flex';
+        }
+        
+        // Ocultar overlay de carga
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+        }
         
         // Inicialización cuando el DOM está listo
         document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar panel de diagnóstico
+            setupDiagnosticPanel();
+            
             // Crear elemento de audio
             audioElement = new Audio();
             
@@ -422,14 +577,17 @@
             // Crear visualizador
             createVisualizer();
             
+            // Iniciar sincronización de tiempo
+            syncServerTime();
+            
             // Conectar al servidor de WebSocket
             connectSocket();
             
-            // Sincronizar el reloj con el servidor
-            syncServerTime();
-            
             // Configurar manejadores de eventos
             setupEventHandlers();
+            
+            // Iniciar verificación periódica de la conexión
+            setTimeout(checkConnection, 10000);
             
             // Configurar compartir código de sesión
             document.getElementById('share-btn').addEventListener('click', function() {
@@ -501,6 +659,8 @@
                     trebleFilter.gain.value = value;
                     document.getElementById('treble-value').textContent = value;
                 });
+                
+                console.log("Web Audio API configurado correctamente");
             } catch (e) {
                 console.error('Error al configurar Web Audio API:', e);
             }
@@ -510,13 +670,19 @@
             const visualizerContainer = document.getElementById('visualizer');
             const numBars = 32;
             
+            // Limpiar contenedor
+            visualizerContainer.innerHTML = '';
+            
             // Crear barras del visualizador
+            visualizerBars = [];
             for (let i = 0; i < numBars; i++) {
                 const bar = document.createElement('div');
                 bar.className = 'visualizer-bar';
                 visualizerContainer.appendChild(bar);
                 visualizerBars.push(bar);
             }
+            
+            console.log("Visualizador creado con éxito");
         }
         
         function updateVisualizer() {
@@ -539,17 +705,66 @@
         }
         
         function connectSocket() {
-            socket = io();
+            // Mostrar estado de conexión
+            document.getElementById('connection-status').textContent = 'Conectando...';
+            document.getElementById('connection-status').className = 'badge bg-warning ms-2';
             
-            // Unirse a la sala
+            // Configuración mejorada para Socket.IO
+            socket = io({
+                reconnection: true,
+                reconnectionAttempts: 10,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                timeout: 20000,
+                forceNew: true
+            });
+            
+            // Eventos de Socket.IO
             socket.on('connect', function() {
+                console.log('Conectado al servidor');
+                document.getElementById('connection-status').textContent = 'Conectado';
+                document.getElementById('connection-status').className = 'badge bg-success ms-2';
+                
+                // Reiniciar contador de intentos
+                retryCount = 0;
+                
+                // Unirse a la sala
                 socket.emit('join', {
                     session_id: sessionId,
                     username: userName
                 });
             });
             
-            // Escuchar eventos
+            socket.on('connect_error', function(error) {
+                console.error('Error de conexión:', error);
+                document.getElementById('connection-status').textContent = 'Error de conexión';
+                document.getElementById('connection-status').className = 'badge bg-danger ms-2';
+                
+                // Intentar reconectar después de varios errores
+                retryCount++;
+                if (retryCount > 3) {
+                    console.log("Intentando reconexión forzada...");
+                    setTimeout(() => {
+                        socket.connect();
+                    }, 3000);
+                }
+            });
+            
+            socket.on('disconnect', function() {
+                console.log('Desconectado del servidor');
+                document.getElementById('connection-status').textContent = 'Desconectado';
+                document.getElementById('connection-status').className = 'badge bg-warning ms-2';
+                
+                // Pausar audio si estaba reproduciéndose
+                if (audioElement && !audioElement.paused) {
+                    audioElement.pause();
+                }
+            });
+            
+            socket.on('server_status', function(data) {
+                console.log('Estado del servidor:', data);
+            });
+            
             socket.on('user_joined', function(data) {
                 updateUsersList(data.users);
                 
@@ -573,25 +788,58 @@
             });
             
             socket.on('track_updated', function(data) {
+                console.log('Pista actualizada:', data);
                 updateTrack(data);
             });
             
             socket.on('playback_update', function(data) {
+                console.log('Evento de reproducción recibido:', data);
                 handlePlaybackEvent(data);
+            });
+            
+            socket.on('error', function(data) {
+                console.error('Error del servidor:', data);
+                alert('Error: ' + data.message);
             });
         }
         
         function syncServerTime() {
+            const startTime = Date.now();
+            
             fetch('/server-time')
                 .then(response => response.json())
                 .then(data => {
                     const clientTime = Date.now();
-                    serverTimeOffset = data.timestamp - clientTime;
+                    const roundTripTime = clientTime - startTime;
+                    // Ajustar por la mitad del tiempo de ida y vuelta
+                    serverTimeOffset = data.timestamp - (clientTime - roundTripTime/2);
+                    console.log(`Offset de tiempo: ${serverTimeOffset}ms, RTT: ${roundTripTime}ms`);
                     
-                    // Re-sincronizar cada minuto
-                    setTimeout(syncServerTime, 60000);
+                    // Re-sincronizar cada 30 segundos
+                    setTimeout(syncServerTime, 30000);
                 })
-                .catch(err => console.error('Error sincronizando tiempo:', err));
+                .catch(err => {
+                    console.error('Error sincronizando tiempo:', err);
+                    // Reintentar después de 5 segundos si falla
+                    setTimeout(syncServerTime, 5000);
+                });
+        }
+        
+        // Verificar estado de conexión periódicamente
+        function checkConnection() {
+            if (socket && socket.connected) {
+                console.log('Conexión Socket.IO activa');
+            } else {
+                console.warn('Socket.IO no está conectado, intentando reconectar...');
+                socket.connect();
+                
+                // Actualizar UI
+                document.getElementById('connection-status').textContent = 'Reconectando...';
+                document.getElementById('connection-status').className = 'badge bg-warning ms-2';
+            }
+            
+            // Verificar cada 10 segundos
+            setTimeout(checkConnection, 10000);
         }
         
         function setupEventHandlers() {
@@ -608,6 +856,7 @@
                     formData.append('session_id', sessionId);
                     
                     // Mostrar indicador de carga
+                    showLoading();
                     const submitBtn = this.querySelector('button[type="submit"]');
                     const originalText = submitBtn.innerHTML;
                     submitBtn.disabled = true;
@@ -619,17 +868,22 @@
                     })
                     .then(response => response.json())
                     .then(data => {
+                        hideLoading();
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = originalText;
                         
                         if (data.error) {
                             alert('Error: ' + data.error);
+                        } else {
+                            console.log('Archivo subido correctamente:', data);
                         }
                     })
                     .catch(err => {
+                        hideLoading();
                         console.error('Error al subir:', err);
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = originalText;
+                        alert('Error al subir el archivo. Intenta nuevamente.');
                     });
                 });
                 
@@ -705,6 +959,38 @@
             audioElement.addEventListener('loadedmetadata', function() {
                 const duration = formatTime(audioElement.duration);
                 document.getElementById('duration').textContent = duration;
+                console.log("Audio metadata cargada, duración:", duration);
+            });
+            
+            // Event listeners para diagnóstico del audio
+            audioElement.addEventListener('loadstart', function() {
+                console.log('Audio: loadstart - Comenzando carga');
+                document.getElementById('status-indicator').textContent = 'Cargando audio...';
+                document.getElementById('status-indicator').classList.add('waiting-pulse', 'bg-warning');
+                document.getElementById('status-indicator').classList.remove('bg-success', 'bg-secondary');
+            });
+            
+            audioElement.addEventListener('canplay', function() {
+                console.log('Audio: canplay - Listo para reproducir');
+                document.getElementById('status-indicator').textContent = 'Listo para reproducir';
+                document.getElementById('status-indicator').classList.remove('waiting-pulse', 'bg-warning');
+                document.getElementById('status-indicator').classList.add('bg-success');
+                hideLoading();
+            });
+            
+            audioElement.addEventListener('waiting', function() {
+                console.log('Audio: waiting - Buffering');
+                document.getElementById('status-indicator').textContent = 'Buffering...';
+                document.getElementById('status-indicator').classList.add('waiting-pulse');
+            });
+            
+            audioElement.addEventListener('error', function(e) {
+                const errMsg = e.target.error ? e.target.error.message : 'Error desconocido';
+                console.error('Error de audio:', errMsg);
+                document.getElementById('status-indicator').textContent = 'Error: ' + errMsg;
+                document.getElementById('status-indicator').classList.remove('waiting-pulse', 'bg-success');
+                document.getElementById('status-indicator').classList.add('bg-danger');
+                hideLoading();
             });
             
             // Cambiar estado al reproducir/pausar
@@ -744,26 +1030,76 @@
             document.getElementById('player-container').style.display = 'block';
             document.getElementById('track-name').textContent = trackData.filename;
             
-            // Actualizar audio
-            audioElement.src = trackData.path;
-            audioElement.load();
+            // Mostrar indicador de carga
+            showLoading();
+            document.getElementById('status-indicator').textContent = 'Cargando audio...';
+            document.getElementById('status-indicator').classList.add('waiting-pulse', 'bg-warning');
+            document.getElementById('status-indicator').classList.remove('bg-success', 'bg-secondary');
+            
+            // Limpiar cualquier elemento de audio existente
+            if (audioElement) {
+                audioElement.pause();
+                audioElement.removeAttribute('src');
+                audioElement.load();
+            }
+            
+            // Configurar para mejor streaming
+            audioElement.preload = 'auto';
+            
+            // Añadir timestamp aleatorio para evitar caché del navegador
+            const cacheBuster = '?cb=' + new Date().getTime();
+            audioElement.src = trackData.path + cacheBuster;
             
             // Reiniciar controles visuales
             document.getElementById('progress-bar').style.width = '0%';
-            document.getElementById('status-indicator').textContent = 'Esperando...';
-            document.getElementById('status-indicator').classList.add('waiting-pulse', 'bg-secondary');
-            document.getElementById('status-indicator').classList.remove('bg-success');
+            
+            // Cargar audio
+            audioElement.load();
             
             // Reiniciar botones para el director
             if (isCreator) {
                 document.getElementById('play-btn').style.display = 'flex';
                 document.getElementById('pause-btn').style.display = 'none';
             }
+            
+            // Configurar timeout para detectar problemas de carga
+            setTimeout(() => {
+                if (audioElement.readyState < 3) {
+                    console.warn("La carga del audio está tardando mucho tiempo");
+                    // Intentar recargar
+                    audioElement.load();
+                }
+            }, 10000);
+            
+            console.log('Pista actualizada y lista para reproducir');
         }
         
         function handlePlaybackEvent(data) {
+            try {
+                // Asegurarse de que el audio está cargado
+                if (!audioElement.readyState || audioElement.readyState < 2) {
+                    console.warn('Audio no está listo para reproducir, intentando pre-cargar');
+                    audioElement.load();
+                    
+                    // Intentar reproducir después de un corto retraso
+                    setTimeout(() => {
+                        processPlaybackCommand(data);
+                    }, 500);
+                    return;
+                }
+                
+                processPlaybackCommand(data);
+            } catch (e) {
+                console.error('Error al manejar evento de reproducción:', e);
+                document.getElementById('status-indicator').textContent = 'Error: ' + e.message;
+                document.getElementById('status-indicator').classList.remove('waiting-pulse', 'bg-success');
+                document.getElementById('status-indicator').classList.add('bg-danger');
+            }
+        }
+        
+        function processPlaybackCommand(data) {
             // Reactivar contexto de audio si está suspendido
-            if (audioContext.state === 'suspended') {
+            if (audioContext && audioContext.state === 'suspended') {
                 audioContext.resume();
             }
             
@@ -772,13 +1108,31 @@
             const eventAge = serverNow - data.server_timestamp;
             const adjustedPosition = data.position + (eventAge / 1000);
             
+            // Log para depuración
+            console.log(`Comando: ${data.action}, Pos: ${data.position}, Ajustada: ${adjustedPosition}`);
+            
             if (data.action === 'play') {
                 audioElement.currentTime = adjustedPosition;
-                audioElement.play().catch(e => console.error('Error al reproducir:', e));
                 
-                if (isCreator) {
-                    document.getElementById('play-btn').style.display = 'none';
-                    document.getElementById('pause-btn').style.display = 'flex';
+                // Usar Promise para manejar errores de reproducción
+                const playPromise = audioElement.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log('Reproducción iniciada con éxito');
+                        if (isCreator) {
+                            document.getElementById('play-btn').style.display = 'none';
+                            document.getElementById('pause-btn').style.display = 'flex';
+                        }
+                    }).catch(error => {
+                        console.error('Error al reproducir:', error);
+                        document.getElementById('status-indicator').textContent = 'Error al reproducir: ' + error.message;
+                        // Intentar reproducir nuevamente después de interacción del usuario
+                        if (isCreator) {
+                            document.getElementById('play-btn').style.display = 'flex';
+                            document.getElementById('pause-btn').style.display = 'none';
+                        }
+                    });
                 }
             } else if (data.action === 'pause') {
                 audioElement.pause();
@@ -854,6 +1208,129 @@
             const minutes = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
             return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Funciones para el panel de diagnóstico
+        function setupDiagnosticPanel() {
+            // Inicializar panel
+            const diagnosticPanel = document.getElementById('diagnostic-panel');
+            const debugToggle = document.getElementById('debug-toggle');
+            const clearLogBtn = document.getElementById('clear-log');
+            const diagLog = document.getElementById('diag-log');
+            
+            // Completar información básica
+            document.getElementById('diag-ua').textContent = navigator.userAgent.substring(0, 40) + '...';
+            
+            // Gestionar visibilidad del panel
+            debugToggle.addEventListener('click', function() {
+                diagnosticPanel.classList.toggle('show');
+                if (diagnosticPanel.classList.contains('show')) {
+                    debugToggle.innerHTML = '<i class="fas fa-times"></i>';
+                    debugToggle.title = "Ocultar diagnóstico";
+                } else {
+                    debugToggle.innerHTML = '<i class="fas fa-wrench"></i>';
+                    debugToggle.title = "Mostrar diagnóstico";
+                }
+            });
+            
+            // Limpiar log
+            clearLogBtn.addEventListener('click', function() {
+                diagLog.innerHTML = '';
+            });
+            
+            // Sobrescribir console.log para mostrar en panel
+            const originalConsoleLog = console.log;
+            const originalConsoleWarn = console.warn;
+            const originalConsoleError = console.error;
+            
+            console.log = function(...args) {
+                addLogEntry('info', args.join(' '));
+                originalConsoleLog.apply(console, args);
+            };
+            
+            console.warn = function(...args) {
+                addLogEntry('warn', args.join(' '));
+                originalConsoleWarn.apply(console, args);
+            };
+            
+            console.error = function(...args) {
+                addLogEntry('error', args.join(' '));
+                originalConsoleError.apply(console, args);
+            };
+            
+            // Función para añadir entradas al log
+            function addLogEntry(level, message) {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                
+                const time = new Date();
+                const timeStr = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}:${time.getSeconds().toString().padStart(2, '0')}`;
+                
+                entry.innerHTML = `<span class="log-time">${timeStr}</span><span class="log-${level}">${message}</span>`;
+                diagLog.appendChild(entry);
+                diagLog.scrollTop = diagLog.scrollHeight;
+                
+                // Actualizar estado de diagnóstico
+                updateDiagnosticState();
+            }
+            
+            // Monitorizar estado del audio
+            if (audioElement) {
+                audioElement.addEventListener('timeupdate', function() {
+                    document.getElementById('diag-elapsed').textContent = formatTime(audioElement.currentTime);
+                    
+                    // Calcular buffer
+                    if (audioElement.buffered && audioElement.buffered.length > 0) {
+                        const bufferEnd = audioElement.buffered.end(audioElement.buffered.length - 1);
+                        const bufferPercentage = ((bufferEnd / audioElement.duration) * 100).toFixed(1);
+                        document.getElementById('diag-buffer').textContent = `${bufferPercentage}% (${formatTime(bufferEnd)})`;
+                    }
+                });
+                
+                // Monitorizar cambios de estado
+                const audioStateEvents = ['loadstart', 'canplay', 'playing', 'waiting', 'seeking', 'seeked', 'stalled', 'ended', 'error', 'pause'];
+                audioStateEvents.forEach(eventName => {
+                    audioElement.addEventListener(eventName, function() {
+                        updateDiagnosticState();
+                    });
+                });
+            }
+            
+            // Monitorizar estado de conexión Socket.IO
+            if (socket) {
+                const socketEvents = ['connect', 'disconnect', 'connect_error'];
+                socketEvents.forEach(eventName => {
+                    socket.on(eventName, function() {
+                        updateDiagnosticState();
+                    });
+                });
+            }
+            
+            // Actualizar estado de diagnóstico
+            function updateDiagnosticState() {
+                // Estado de conexión
+                document.getElementById('diag-connection').textContent = socket && socket.connected ? "Conectado" : "Desconectado";
+                
+                // Estado de audio
+                if (audioElement) {
+                    let audioState = "Desconocido";
+                    if (audioElement.error) audioState = "Error";
+                    else if (audioElement.readyState < 2) audioState = "Cargando";
+                    else if (audioElement.paused) audioState = "Pausado";
+                    else if (audioElement.ended) audioState = "Finalizado";
+                    else audioState = "Reproduciendo";
+                    
+                    document.getElementById('diag-audio-state').textContent = audioState;
+                    
+                    // Calcular latencia (aproximada)
+                    if (serverTimeOffset) {
+                        document.getElementById('diag-latency').textContent = `~${Math.abs(serverTimeOffset).toFixed(0)}ms`;
+                    }
+                }
+            }
+            
+            // Actualización periódica
+            setInterval(updateDiagnosticState, 1000);
         }
     </script>
 </body>
