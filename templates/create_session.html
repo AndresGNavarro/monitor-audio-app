@@ -289,5 +289,21 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Script específico para la página de creación de sesión
+        // No incluye código relacionado con la reproducción de audio
+        console.log("Página de creación de sesión cargada correctamente");
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Si la página tiene código de navegación antiguo, 
+            // proporcionar variables nulas para evitar errores
+            window.hasUserInteracted = true; // No usado en esta página
+            
+            // Limpiar cualquier comando de reproducción antiguo
+            if (sessionStorage.getItem('pendingPlaybackCommand')) {
+                sessionStorage.removeItem('pendingPlaybackCommand');
+            }
+        });
+    </script>
 </body>
 </html>
